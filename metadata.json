@@ -1,0 +1,5 @@
+{
+  "name": "promptforge",
+  "description": "A client-side web application that functions as a visual prompt assembler for AI art. Users deconstruct inspiration into reusable components and reassemble them to generate new prompts instantly.",
+  "requestFramePermissions": []
+}
