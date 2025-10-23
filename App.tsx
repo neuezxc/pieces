@@ -10,6 +10,7 @@ import BuilderView from './components/BuilderView';
 import AddImageModal from './components/AddImageModal';
 import PreviewModal from './components/PreviewModal';
 import CollectionsView from './components/CollectionsView';
+import ApiKeyModal from './components/ApiKeyModal';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.LIBRARY);
@@ -21,6 +22,10 @@ const App: React.FC = () => {
   const [previewingEntry, setPreviewingEntry] = useState<ImageEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [builderComponents, setBuilderComponents] = useState<ImageEntry[]>([]);
+
+  const [apiKey, setApiKey] = useLocalStorage<string>('gemini-api-key', '');
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState('');
 
 
   const handlePaste = useCallback((dataUrl: string) => {
@@ -161,12 +166,25 @@ const App: React.FC = () => {
       }
       reader.readAsText(file);
   }, [setImageLibrary, setCollections, handleError]);
+  
+  const handleInvalidApiKey = useCallback(() => {
+    setApiKey('');
+    setApiKeyError('Your API key is invalid or has been rejected. Please enter a valid key.');
+    setIsApiKeyModalOpen(true);
+  }, [setApiKey]);
 
   const isAddModalOpen = !!pastedImageData || !!entryToEdit;
 
   return (
     <div className="h-screen flex flex-col font-sans bg-background">
-        <Header currentView={view} setView={setView} />
+        <Header 
+            currentView={view} 
+            setView={setView} 
+            onApiKeyClick={() => {
+                setApiKeyError('');
+                setIsApiKeyModalOpen(true);
+            }}
+        />
         <main className="flex-grow overflow-hidden">
             {view === View.LIBRARY && (
               <div className="h-full overflow-y-auto">
@@ -206,6 +224,12 @@ const App: React.FC = () => {
                 }}
                 onSave={handleSaveImage}
                 allTags={allTags}
+                apiKey={apiKey}
+                onInvalidApiKey={handleInvalidApiKey}
+                openApiKeyModal={() => {
+                    setApiKeyError('');
+                    setIsApiKeyModalOpen(true);
+                }}
             />
         )}
         
@@ -220,6 +244,18 @@ const App: React.FC = () => {
                 onDelete={(id) => {
                     handleDeleteImage(id, () => setPreviewingEntry(null));
                 }}
+            />
+        )}
+
+        {isApiKeyModalOpen && (
+            <ApiKeyModal
+                initialKey={apiKey}
+                onClose={() => setIsApiKeyModalOpen(false)}
+                onSave={(key) => {
+                    setApiKey(key);
+                    setIsApiKeyModalOpen(false);
+                }}
+                errorMessage={apiKeyError}
             />
         )}
 

@@ -9,9 +9,12 @@ interface AddImageModalProps {
   onClose: () => void;
   onSave: (entry: Omit<ImageEntry, 'dateAdded'>, isEdit: boolean) => void;
   allTags: string[];
+  apiKey: string;
+  onInvalidApiKey: () => void;
+  openApiKeyModal: () => void;
 }
 
-const AddImageModal: React.FC<AddImageModalProps> = ({ imageData, entryToEdit, onClose, onSave, allTags }) => {
+const AddImageModal: React.FC<AddImageModalProps> = ({ imageData, entryToEdit, onClose, onSave, allTags, apiKey, onInvalidApiKey, openApiKeyModal }) => {
   const [title, setTitle] = useState(entryToEdit?.title || '');
   const [notes, setNotes] = useState(entryToEdit?.notes || '');
   const [promptText, setPromptText] = useState(entryToEdit?.prompt || '');
@@ -68,11 +71,16 @@ const AddImageModal: React.FC<AddImageModalProps> = ({ imageData, entryToEdit, o
 
   const generatePrompt = useCallback(async () => {
     if (!imageSource) return;
+    if (!apiKey) {
+      openApiKeyModal();
+      return;
+    }
+    
     setIsGenerating(true);
     setPromptText('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const dataUrlToParts = (dataUrl: string) => {
         const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
         if (!match) throw new Error('Invalid data URL');
@@ -93,11 +101,15 @@ const AddImageModal: React.FC<AddImageModalProps> = ({ imageData, entryToEdit, o
       setPromptText(response.text.trim());
     } catch (error) {
       console.error("Error generating prompt:", error);
-      setPromptText("Could not generate prompt. Please write one manually.");
+      if (error instanceof Error && (error.message.includes('API key not valid') || error.message.toLowerCase().includes('permission denied'))) {
+        onInvalidApiKey();
+      } else {
+        setPromptText("Could not generate prompt. Please check the console for details.");
+      }
     } finally {
       setIsGenerating(false);
     }
-  }, [imageSource, generationFocus]);
+  }, [imageSource, generationFocus, apiKey, openApiKeyModal, onInvalidApiKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
